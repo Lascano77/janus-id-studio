@@ -32,18 +32,32 @@
             overflow: hidden !important;
         }
         .name-tag-preview {
-            flex: 0 0 18px;
-            width: 100%; height: 18px; min-height: 18px;
-            box-sizing: border-box;
-            display: flex; align-items: center; justify-content: center;
-            padding: 0 2px; overflow: hidden; text-align: center;
-            white-space: nowrap; text-overflow: clip;
-            border: none; background: #ffffff;
-            color: #111111; font-family: Arial, sans-serif;
-            font-weight: 700; line-height: 1;
+            position: relative !important;
+            flex: 0 0 24px !important;
+            flex-shrink: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 100% !important;
+            height: 24px !important;
+            min-height: 24px !important;
+            max-height: 24px !important;
+            margin: 0 !important;
+            padding: 0 2px !important;
+            box-sizing: border-box !important;
+            overflow: visible !important;
+            text-align: center !important;
+            white-space: nowrap !important;
+            text-overflow: clip !important;
+            border: none !important;
+            background: #ffffff !important;
+            color: #111111 !important;
+            font-family: Arial, sans-serif !important;
+            font-weight: 900 !important;
+            line-height: 1 !important;
         }
         .photo-image-area {
-            flex: 1 1 auto;
+            flex: 1 1 0 !important;
             width: 100%; height: auto !important; min-height: 0;
             box-sizing: border-box; overflow: hidden;
             border: none; background: #e2e8f0;
@@ -425,6 +439,7 @@
             "8R": [8, 10],
             "passport": [1.4, 1.8],
             "cute": [2, 3],
+            "poloroid": [53 / 25.4, 86 / 25.4],
             "wallet": [2.5, 3.2],
             "2x2": [2.1, 2.1],
             "1x1": [1.06, 1.06]
@@ -439,7 +454,8 @@
             "8R": '8R (8" × 10")',
             "wallet": 'Wallet / 2R (2.5" × 3.2")',
             "passport": 'Passport (1.8" × 1.4")',
-            "cute": 'Cute Size (2" × 3")'
+            "cute": 'Cute Size (2" × 3")',
+            "poloroid": 'Polaroid ID (53 × 86 mm)'
         };
 
         let bundleRowCounter = 0;
@@ -551,12 +567,12 @@
             return best;
         }
 
-        const NAME_TAG_HEIGHT = 18; // compact name strip inside the ID frame
+        const NAME_TAG_HEIGHT = 24; // compact name strip beneath the ID photo, matching the sample layout
 
         function layoutBundle(items) {
             const expanded = [];
             const nameTagText = document.getElementById("nameTagInput")?.value.trim() || "";
-            const tagHeight = nameTagText ? NAME_TAG_HEIGHT : 0;
+            const tagHeight = nameTagText && item.size !== "poloroid" ? NAME_TAG_HEIGHT : 0;
             items.forEach(item => {
                 const [wIn, hIn] = PHOTO_SIZES_INCHES[item.size];
                 for (let i = 0; i < item.quantity; i++) {
@@ -625,56 +641,71 @@
                 page.items.forEach(photo => {
                     const piece = document.createElement("div");
                     piece.className = "photo-piece";
+                    piece.dataset.photoSize = photo.size;
                     piece.style.left = `${photo.x}px`;
                     piece.style.top = `${photo.y}px`;
                     piece.style.width = `${photo.placedW}px`;
                     piece.style.height = `${photo.placedH}px`;
-                    piece.style.border = "2px solid #333333";
+                    piece.style.border = "2px solid #111111";
                     piece.style.background = "#ffffff";
 
+                    const isPoloroid = photo.size === "poloroid";
                     const imageArea = document.createElement("div");
                     imageArea.className = "photo-image-area";
-                    imageArea.style.flex = "1 1 auto";
-                    imageArea.style.minHeight = "0";
+
+                    if (isPoloroid) {
+                        // Instax Mini print: 53 x 86 mm outer frame with a 46 x 61 mm image window.
+                        const instaxInnerWidth = 46 / 25.4 * 96;
+                        const instaxInnerHeight = 61 / 25.4 * 96;
+                        const instaxSideMargin = (53 - 46) / 2 / 25.4 * 96;
+                        imageArea.style.cssText =
+                            `position:absolute;left:${instaxSideMargin}px;top:${6 / 25.4 * 96}px;transform:none;` +
+                            `width:${instaxInnerWidth}px!important;height:${instaxInnerHeight}px!important;` +
+                            `min-width:${instaxInnerWidth}px!important;min-height:${instaxInnerHeight}px!important;` +
+                            `max-width:${instaxInnerWidth}px!important;max-height:${instaxInnerHeight}px!important;` +
+                            "display:block;flex:none;box-sizing:border-box;" +
+                            "border:2px solid #111111;background:#ffffff;overflow:hidden;isolation:isolate;";
+                    } else {
+                        imageArea.style.flex = "1 1 auto";
+                        imageArea.style.minHeight = "0";
+                    }
 
                     if (uploadedImageSrc) {
                         const img = document.createElement("img");
                         img.src = uploadedImageSrc;
                         img.alt = `${photo.size} copy ${photo.copy}`;
-                        img.style.transform = `scale(${currentZoom})`;
+                        img.style.cssText =
+                            `position:absolute;left:0;top:0;right:0;bottom:0;` +
+                            `width:100%!important;height:100%!important;min-width:100%!important;min-height:100%!important;` +
+                            `max-width:none!important;max-height:none!important;` +
+                            `object-fit:cover;object-position:center center;display:block;` +
+                            `transform:scale(${currentZoom});transform-origin:center center;` +
+                            `z-index:2;margin:0;padding:0;border:0;`;
                         imageArea.appendChild(img);
                     } else {
                         imageArea.style.display = "flex";
                         imageArea.style.alignItems = "center";
                         imageArea.style.justifyContent = "center";
                         const placeholder = document.createElement("span");
-                        placeholder.textContent = photo.size.toUpperCase();
+                        placeholder.textContent = isPoloroid ? "SQUARE PHOTO" : photo.size.toUpperCase();
                         placeholder.style.cssText = "font: bold 18px Arial; color: #64748b;";
                         imageArea.appendChild(placeholder);
                     }
                     piece.appendChild(imageArea);
 
-                    if (photo.nameTagText) {
+                    if (photo.nameTagText && !isPoloroid) {
                         const tag = document.createElement("div");
                         tag.className = "name-tag-preview";
                         tag.style.height = `${photo.tagHeight}px`;
                         tag.style.flex = `0 0 ${photo.tagHeight}px`;
                         tag.textContent = photo.nameTagText;
 
-                        // Measure text and reduce font size only as much as needed
-                        // so the complete name remains visible in both preview and PDF.
-                        const measureCanvas = document.createElement("canvas");
-                        const measureContext = measureCanvas.getContext("2d");
-                        const availableTextWidth = Math.max(10, photo.placedW - 8);
-                        let fontSize = 8;
-                        if (measureContext) {
-                            while (fontSize > 4) {
-                                measureContext.font = `700 ${fontSize}px Arial`;
-                                if (measureContext.measureText(photo.nameTagText).width <= availableTextWidth) break;
-                                fontSize -= 0.25;
-                            }
-                        }
+                        // Keep a consistent, larger name-tag font in both preview and PDF.
+                        // The font will not automatically shrink for longer names.
+                        const fontSize = 12;
                         tag.style.fontSize = `${fontSize}px`;
+                        tag.style.lineHeight = "1";
+                        tag.style.maxWidth = "100%";
                         piece.appendChild(tag);
                     }
 
@@ -763,6 +794,35 @@
                         "overflow:hidden!important;margin:0!important;";
                     staging.innerHTML = "";
                     staging.appendChild(clone);
+
+                    // Keep the Instax Mini image window at its exact 46 x 61 mm geometry
+                    // in the PDF clone. Preserve absolute positioning so html2canvas does
+                    // not shrink the image to half-width during off-screen rendering.
+                    clone.querySelectorAll('.photo-piece[data-photo-size="poloroid"]').forEach(piece => {
+                        const imageArea = piece.querySelector('.photo-image-area');
+                        if (!imageArea) return;
+                        const innerW = 46 / 25.4 * 96;
+                        const innerH = 61 / 25.4 * 96;
+                        const innerLeft = (53 - 46) / 2 / 25.4 * 96;
+                        imageArea.style.cssText =
+                            `position:absolute!important;left:${innerLeft}px!important;top:${6 / 25.4 * 96}px!important;` +
+                            "right:auto!important;bottom:auto!important;transform:none!important;" +
+                            `display:block!important;flex:none!important;width:${innerW}px!important;height:${innerH}px!important;` +
+                            `min-width:${innerW}px!important;min-height:${innerH}px!important;` +
+                            `max-width:${innerW}px!important;max-height:${innerH}px!important;` +
+                            "margin:0!important;padding:0!important;box-sizing:border-box!important;" +
+                            "overflow:hidden!important;border:2px solid #111111!important;background:#ffffff!important;";
+                        const photoImg = imageArea.querySelector('img');
+                        if (photoImg) {
+                            photoImg.style.cssText =
+                                "position:absolute!important;left:0!important;top:0!important;right:0!important;bottom:0!important;" +
+                                "display:block!important;width:100%!important;height:100%!important;" +
+                                "min-width:100%!important;min-height:100%!important;max-width:none!important;max-height:none!important;" +
+                                "object-fit:cover!important;object-position:center center!important;" +
+                                `transform:scale(${currentZoom})!important;` +
+                                "transform-origin:center center!important;margin:0!important;padding:0!important;border:0!important;";
+                        }
+                    });
 
                     // Wait for all photos in this page clone to finish loading.
                     const images = [...clone.querySelectorAll("img")];
