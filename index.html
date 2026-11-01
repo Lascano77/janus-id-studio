@@ -3,17 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Janus ID Studio - Free ID Picture Maker &amp; A4 PDF Generator</title>
-    <meta name="description" content="Create ID pictures online for free with Janus ID Studio. Choose photo sizes, arrange multiple ID photos on an A4 sheet, add name tags, and download a printable PDF.">
-    <link rel="canonical" href="https://lascano77.github.io/janus-id-studio/">
-    <meta property="og:type" content="website">
-    <meta property="og:site_name" content="Janus ID Studio">
-    <meta property="og:title" content="Janus ID Studio - Free ID Picture Maker">
-    <meta property="og:description" content="Create ID picture layouts, combine photo sizes on an A4 sheet, add name tags, and download a printable PDF for free.">
-    <meta property="og:url" content="https://lascano77.github.io/janus-id-studio/">
-    <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="Janus ID Studio - Free ID Picture Maker">
-    <meta name="twitter:description" content="Create ID picture layouts on A4 and download a printable PDF for free.">
+    <title>Janus ID Picture Studio - Generator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -59,7 +49,7 @@
             text-align: center !important;
             white-space: nowrap !important;
             text-overflow: clip !important;
-            border: none !important;
+            border: 1px solid #111111 !important;
             background: #ffffff !important;
             color: #111111 !important;
             font-family: Arial, sans-serif !important;
@@ -211,8 +201,8 @@
         <!-- Left Panel: Controls & Options (7 cols) -->
         <div class="lg:col-span-7 bg-white border border-blue-100 rounded-3xl p-6 backdrop-blur shadow-xl space-y-6">
             <div>
-                <h1 class="text-2xl font-bold tracking-tight text-slate-900">Janus ID Studio - Free ID Picture Bundle Generator</h1>
-                <p class="text-sm text-slate-600 mt-1">Gumawa ng ID pictures online for free. Pumili ng photo size at quantity, ayusin ang ID photo bundle sa A4 sheet, at i-download bilang printable PDF.</p>
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900">ID Picture Bundle Generator</h1>
+                <p class="text-sm text-slate-600 mt-1">Pumili ng sukat sa dropdown, i-type ang iyong bundle, at i-click ang Save para sa A4 preview.</p>
             </div>
 
             <!-- Upload Box with File Input trigger -->
@@ -456,16 +446,16 @@
         };
 
         const PHOTO_SIZE_LABELS = {
-            "2x2": '2×2 Picture (2.1" × 2.1")',
-            "1x1": '1×1 Picture (1.06" × 1.06")',
-            "4R": '4R (4" × 6")',
-            "5R": '5R (5" × 7")',
-            "6R": '6R (6" × 8")',
-            "8R": '8R (8" × 10")',
-            "wallet": 'Wallet / 2R (2.5" × 3.2")',
-            "passport": 'Passport (1.8" × 1.4")',
-            "cute": 'Cute Size (2" × 3")',
-            "poloroid": 'Polaroid ID (53 × 86 mm)'
+            "2x2": '2×2 Picture',
+            "1x1": '1×1 Picture',
+            "4R": '4R',
+            "5R": '5R',
+            "6R": '6R',
+            "8R": '8R',
+            "wallet": 'Wallet / 2R',
+            "passport": 'Passport',
+            "cute": 'Cute Size',
+            "poloroid": 'Polaroid ID'
         };
 
         let bundleRowCounter = 0;
@@ -582,9 +572,9 @@
         function layoutBundle(items) {
             const expanded = [];
             const nameTagText = document.getElementById("nameTagInput")?.value.trim() || "";
-            const tagHeight = nameTagText && item.size !== "poloroid" ? NAME_TAG_HEIGHT : 0;
             items.forEach(item => {
                 const [wIn, hIn] = PHOTO_SIZES_INCHES[item.size];
+                const tagHeight = nameTagText ? NAME_TAG_HEIGHT : 0;
                 for (let i = 0; i < item.quantity; i++) {
                     expanded.push({
                         size: item.size, copy: i + 1,
@@ -676,8 +666,11 @@
                             "display:block;flex:none;box-sizing:border-box;" +
                             "border:2px solid #111111;background:#ffffff;overflow:hidden;isolation:isolate;";
                     } else {
-                        imageArea.style.flex = "1 1 auto";
-                        imageArea.style.minHeight = "0";
+                        // Keep the uploaded photo confined to the photo area only.
+                        // This prevents the image from covering the name strip below it.
+                        imageArea.style.cssText =
+                            "position:relative;flex:1 1 auto;min-height:0;width:100%;" +
+                            "overflow:hidden;box-sizing:border-box;display:block;";
                     }
 
                     if (uploadedImageSrc) {
@@ -703,19 +696,24 @@
                     }
                     piece.appendChild(imageArea);
 
-                    if (photo.nameTagText && !isPoloroid) {
+                    if (photo.nameTagText) {
                         const tag = document.createElement("div");
                         tag.className = "name-tag-preview";
                         tag.style.height = `${photo.tagHeight}px`;
                         tag.style.flex = `0 0 ${photo.tagHeight}px`;
                         tag.textContent = photo.nameTagText;
 
-                        // Keep a consistent, larger name-tag font in both preview and PDF.
-                        // The font will not automatically shrink for longer names.
-                        const fontSize = 12;
+                        // Automatically fit the name within each photo's available width.
+                        const availableWidth = Math.max(20, photo.placedW - 12);
+                        const estimatedTextWidth = photo.nameTagText.length * 0.68;
+                        const fontSize = Math.max(5, Math.min(12, availableWidth / estimatedTextWidth));
                         tag.style.fontSize = `${fontSize}px`;
                         tag.style.lineHeight = "1";
                         tag.style.maxWidth = "100%";
+                        tag.style.position = "relative";
+                        tag.style.zIndex = "3";
+                        tag.style.border = "1px solid #111111";
+                        tag.style.flexShrink = "0";
                         piece.appendChild(tag);
                     }
 
@@ -805,6 +803,19 @@
                     staging.innerHTML = "";
                     staging.appendChild(clone);
 
+                    // Re-apply the name-strip layout in the PDF clone.
+                    // This prevents html2canvas from placing the text against the bottom edge.
+                    clone.querySelectorAll(".name-tag-preview").forEach(tag => {
+                        tag.style.cssText +=
+                            ";display:flex!important;align-items:center!important;justify-content:center!important;" +
+                            "text-align:center!important;vertical-align:middle!important;" +
+                            "height:24px!important;min-height:24px!important;max-height:24px!important;" +
+                            "line-height:normal!important;padding:0 2px!important;margin:0!important;" +
+                            "box-sizing:border-box!important;white-space:nowrap!important;" +
+                            "overflow:hidden!important;border:1px solid #111111!important;" +
+                            "background:#ffffff!important;color:#111111!important;";
+                    });
+
                     // Keep the Instax Mini image window at its exact 46 x 61 mm geometry
                     // in the PDF clone. Preserve absolute positioning so html2canvas does
                     // not shrink the image to half-width during off-screen rendering.
@@ -892,7 +903,119 @@
             addBundleRow("2x2", 1);
             resetZoom();
             updateA4Grid();
+        } 
+      
+const JANUS_API_URL = "https://janus-id-api.januslascano2006.workers.dev";
+
+function addJanusAIControls() {
+    const zoomControl = document.getElementById("zoomRange");
+    if (!zoomControl || document.getElementById("janusAIControls")) return;
+
+    const controls = document.createElement("div");
+    controls.id = "janusAIControls";
+    controls.className = "space-y-2";
+
+    controls.innerHTML = `
+        <p class="text-xs font-semibold text-slate-200">
+            AI PHOTO TOOLS
+        </p>
+        <div class="grid grid-cols-2 gap-2">
+            <button type="button" id="janusRemoveBG"
+                class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold py-2.5 px-2 rounded-xl">
+                ✂️ Remove BG
+            </button>
+            <button type="button" id="janusEnhance"
+                class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold py-2.5 px-2 rounded-xl">
+                ✨ AI Enhance
+            </button>
+        </div>
+        <p id="janusAIStatus" class="text-xs text-slate-300" aria-live="polite">
+            Choose an AI photo tool.
+        </p>
+    `;
+
+    zoomControl.closest(".space-y-1").insertAdjacentElement("afterend", controls);
+
+    document.getElementById("janusRemoveBG").addEventListener("click", () => {
+        processJanusImage("remove-bg");
+    });
+
+    document.getElementById("janusEnhance").addEventListener("click", () => {
+        processJanusImage("enhance");
+    });
+}
+
+async function processJanusImage(operation) {
+    if (!uploadedImageSrc) {
+        alert("Please upload a photo first.");
+        return;
+    }
+
+    const removeButton = document.getElementById("janusRemoveBG");
+    const enhanceButton = document.getElementById("janusEnhance");
+    const status = document.getElementById("janusAIStatus");
+
+    removeButton.disabled = true;
+    enhanceButton.disabled = true;
+
+    const originalText = operation === "remove-bg"
+        ? removeButton.innerText
+        : enhanceButton.innerText;
+
+    const activeButton = operation === "remove-bg"
+        ? removeButton
+        : enhanceButton;
+
+    activeButton.innerText = "⏳ Processing...";
+    status.innerText = "Please wait while your photo is being processed.";
+
+    try {
+        const mimeMatch = uploadedImageSrc.match(/^data:(.*?);base64,/);
+        const mimeType = mimeMatch ? mimeMatch[1] : "image/jpeg";
+
+        const response = await fetch(`${JANUS_API_URL}/${operation}`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                imageBase64: uploadedImageSrc,
+                mimeType: mimeType
+            })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success || !result.imageBase64) {
+            throw new Error(
+                result.error || "Photo processing failed."
+            );
         }
+
+        uploadedImageSrc = result.imageBase64;
+
+        document.getElementById("modalImageDisplay").src = uploadedImageSrc;
+
+        resetZoom();
+
+        status.innerText = operation === "remove-bg"
+            ? "✓ Background removed successfully!"
+            : "✓ Photo enhancement completed!";
+
+    } catch (error) {
+        console.error("Janus AI error:", error);
+        status.innerText = "Error: " + error.message;
+        alert("Unable to process photo: " + error.message);
+
+    } finally {
+        removeButton.disabled = false;
+        enhanceButton.disabled = false;
+        activeButton.innerText = originalText;
+    }
+}
+
+addJanusAIControls();
+
     </script>
 </body>
 </html>
