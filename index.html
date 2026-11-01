@@ -919,19 +919,29 @@ function addJanusAIControls() {
         <p class="text-xs font-semibold text-slate-200">
             AI PHOTO TOOLS
         </p>
-        <div class="grid grid-cols-2 gap-2">
-            <button type="button" id="janusRemoveBG"
-                class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold py-2.5 px-2 rounded-xl">
-                ✂️ Remove BG
-            </button>
-            <button type="button" id="janusEnhance"
-                class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold py-2.5 px-2 rounded-xl">
-                ✨ AI Enhance
-            </button>
-        </div>
-        <p id="janusAIStatus" class="text-xs text-slate-300" aria-live="polite">
-            Choose an AI photo tool.
-        </p>
+       <div class="grid grid-cols-1 gap-2">
+  <button type="button" id="janusRemoveBG"
+    class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold py-2.5 px-2 rounded-xl">
+    ✂️ Remove BG
+  </button>
+
+  <div class="grid grid-cols-2 gap-2">
+    <select id="janusAttireType"
+      class="bg-white text-slate-800 text-xs font-semibold py-2 px-2 rounded-xl border border-slate-300">
+      <option value="female">Female Formal Suit</option>
+      <option value="male">Male Formal Suit</option>
+    </select>
+
+    <button type="button" id="janusAttire"
+      class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold py-2 px-2 rounded-xl">
+      ✨ Attire Changer
+    </button>
+  </div>
+</div>
+
+<p id="janusAIStatus" class="text-xs text-slate-300" aria-live="polite">
+  Choose a formal suit style.
+</p>
     `;
 
     zoomControl.closest(".space-y-1").insertAdjacentElement("afterend", controls);
@@ -940,32 +950,33 @@ function addJanusAIControls() {
         processJanusImage("remove-bg");
     });
 
-    document.getElementById("janusEnhance").addEventListener("click", () => {
-        processJanusImage("enhance");
-    });
+ document.getElementById("janusAttire").addEventListener("click", () => {
+  const attireType = document.getElementById("janusAttireType").value;
+  processJanusImage("attire", attireType);
+});
 }
 
-async function processJanusImage(operation) {
+async function processJanusImage(operation, attireType) {
     if (!uploadedImageSrc) {
         alert("Please upload a photo first.");
         return;
     }
 
     const removeButton = document.getElementById("janusRemoveBG");
-    const enhanceButton = document.getElementById("janusEnhance");
+    const attireButton = document.getElementById("janusAttire");
     const status = document.getElementById("janusAIStatus");
 
     removeButton.disabled = true;
-    enhanceButton.disabled = true;
+    attireButton.disabled = true;
 
     const originalText = operation === "remove-bg"
         ? removeButton.innerText
-        : enhanceButton.innerText;
+        : attireButton.innerText;
 
     const activeButton = operation === "remove-bg"
         ? removeButton
-        : enhanceButton;
-
+        : attireButton;
+  
     activeButton.innerText = "⏳ Processing...";
     status.innerText = "Please wait while your photo is being processed.";
 
@@ -978,11 +989,11 @@ async function processJanusImage(operation) {
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({
-                imageBase64: uploadedImageSrc,
-                mimeType: mimeType
-            })
-        });
+       body: JSON.stringify({
+  imageBase64: uploadedImageSrc,
+  mimeType: mimeType,
+  ...(operation === "attire" ? { attireType: attireType } : {})
+});
 
         const result = await response.json();
 
@@ -998,10 +1009,10 @@ async function processJanusImage(operation) {
 
         resetZoom();
 
-        status.innerText = operation === "remove-bg"
-            ? "✓ Background removed successfully!"
-            : "✓ Photo enhancement completed!";
-
+       status.innerText = operation === "remove-bg"
+  ? "✓ Background removed successfully!"
+  : "✓ Formal attire changed successfully!";
+      
     } catch (error) {
         console.error("Janus AI error:", error);
         status.innerText = "Error: " + error.message;
@@ -1009,7 +1020,7 @@ async function processJanusImage(operation) {
 
     } finally {
         removeButton.disabled = false;
-        enhanceButton.disabled = false;
+        attireButton.disabled = false;
         activeButton.innerText = originalText;
     }
 }
