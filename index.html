@@ -919,29 +919,29 @@ function addJanusAIControls() {
         <p class="text-xs font-semibold text-slate-200">
             AI PHOTO TOOLS
         </p>
-       <div class="grid grid-cols-1 gap-2">
-  <button type="button" id="janusRemoveBG"
-    class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold py-2.5 px-2 rounded-xl">
-    ✂️ Remove BG
-  </button>
-
-  <div class="grid grid-cols-2 gap-2">
-    <select id="janusAttireType"
-      class="bg-white text-slate-800 text-xs font-semibold py-2 px-2 rounded-xl border border-slate-300">
-      <option value="female">Female Formal Suit</option>
-      <option value="male">Male Formal Suit</option>
-    </select>
-
-    <button type="button" id="janusAttire"
-      class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold py-2 px-2 rounded-xl">
-      ✨ Attire Changer
-    </button>
-  </div>
-</div>
-
-<p id="janusAIStatus" class="text-xs text-slate-300" aria-live="polite">
-  Choose a formal suit style.
-</p>
+        <div class="space-y-1">
+            <label for="janusAttireType" class="block text-xs text-slate-300">
+                Choose formal attire
+            </label>
+            <select id="janusAttireType"
+                class="w-full bg-slate-800 border border-slate-600 text-white text-xs rounded-xl px-3 py-2.5">
+                <option value="female">Female Formal Suit</option>
+                <option value="male">Male Formal Suit</option>
+            </select>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+            <button type="button" id="janusRemoveBG"
+                class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold py-2.5 px-2 rounded-xl">
+                ✂️ Remove BG
+            </button>
+            <button type="button" id="janusAttire"
+                class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold py-2.5 px-2 rounded-xl">
+                👔 Attire Changer
+            </button>
+        </div>
+        <p id="janusAIStatus" class="text-xs text-slate-300" aria-live="polite">
+            Choose an attire style or remove the photo background.
+        </p>
     `;
 
     zoomControl.closest(".space-y-1").insertAdjacentElement("afterend", controls);
@@ -950,13 +950,12 @@ function addJanusAIControls() {
         processJanusImage("remove-bg");
     });
 
- document.getElementById("janusAttire").addEventListener("click", () => {
-  const attireType = document.getElementById("janusAttireType").value;
-  processJanusImage("attire", attireType);
-});
+    document.getElementById("janusAttire").addEventListener("click", () => {
+        processJanusImage("attire");
+    });
 }
 
-async function processJanusImage(operation, attireType) {
+async function processJanusImage(operation) {
     if (!uploadedImageSrc) {
         alert("Please upload a photo first.");
         return;
@@ -976,7 +975,7 @@ async function processJanusImage(operation, attireType) {
     const activeButton = operation === "remove-bg"
         ? removeButton
         : attireButton;
-  
+
     activeButton.innerText = "⏳ Processing...";
     status.innerText = "Please wait while your photo is being processed.";
 
@@ -989,11 +988,14 @@ async function processJanusImage(operation, attireType) {
             headers: {
                 "Content-Type": "application/json"
             },
-       body: JSON.stringify({
-  imageBase64: uploadedImageSrc,
-  mimeType: mimeType,
-  ...(operation === "attire" ? { attireType: attireType } : {})
-});
+            body: JSON.stringify({
+                imageBase64: uploadedImageSrc,
+                mimeType: mimeType,
+                attireType: operation === "attire"
+                    ? document.getElementById("janusAttireType").value
+                    : undefined
+            })
+        });
 
         const result = await response.json();
 
@@ -1009,10 +1011,10 @@ async function processJanusImage(operation, attireType) {
 
         resetZoom();
 
-       status.innerText = operation === "remove-bg"
-  ? "✓ Background removed successfully!"
-  : "✓ Formal attire changed successfully!";
-      
+        status.innerText = operation === "remove-bg"
+            ? "✓ Background removed successfully!"
+            : "✓ Formal attire changed successfully!";
+
     } catch (error) {
         console.error("Janus AI error:", error);
         status.innerText = "Error: " + error.message;
